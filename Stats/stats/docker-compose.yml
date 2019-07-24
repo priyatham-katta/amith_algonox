@@ -1,0 +1,371 @@
+version: '3.6'
+
+networks:
+  service_bridge:
+    name: service_bridge
+    driver: overlay
+
+services:
+  # service_bridge
+  service_bridge:
+    image: service_bridge
+    container_name: service_bridge
+    build: ./service_bridge
+    ports:
+      - '5002:80'
+    restart: on-failure
+    networks:
+      - service_bridge
+
+  # apache_base
+  # apache_base:
+  #   image: apache_base
+  #   container_name: apache_base
+  #   build: ./dummy
+  #   restart: on-failure
+  #   networks:
+  #     - service_bridge
+# stats
+  stats:
+    image: 'stats'
+    container_name: 'stats'
+    build: ./stats/BL
+    ports:
+      - '8888:80'
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  # kafka
+  zookeeper:
+    image: 'bitnami/zookeeper:latest'
+    container_name: 'zookeeper'
+    networks:
+      - service_bridge
+    ports:
+      - '2181:2181'
+    restart: on-failure
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  broker:
+    image: 'bitnami/kafka:latest'
+    container_name: 'broker'
+    networks:
+      - service_bridge
+    restart: on-failure
+    ports:
+      - '9092:9092'
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://broker:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_BROKER_ID=1
+      - group.max.session.timeout.ms=600000000
+
+  producer:
+    image: 'producer'
+    container_name: 'producer'
+    build: ./kafka/producer
+    ports:
+      - '6969:6969'
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  consumer:
+    image: 'consumer'
+    container_name: 'consumer'
+    build: ./kafka/consumer
+    ports:
+      - '6968:6968'
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  # common_db
+  common_db:
+    image: mysql:5.7
+    container_name: 'common_db'
+    volumes:
+      - ./common_db:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  common_php:
+    image: 'phpmyadmin/phpmyadmin'
+    container_name: 'common_php'
+    ports:
+      - '8082:80'
+    networks:
+      - service_bridge
+    links:
+      - common_db:db
+    depends_on: 
+      - common_db
+
+  # Queues
+  queue_api:
+    image: 'queue_api'
+    container_name: 'queue_api'
+    build: ./queue_api/BL
+    networks:
+      - service_bridge
+    restart: on-failure
+    depends_on: 
+      - common_db
+
+  button_functions:
+    image: 'button_functions'
+    container_name: 'button_functions'
+    build: ./button_functions
+    networks:
+      - service_bridge
+    restart: on-failure
+    depends_on: 
+      - common_db
+    
+  clustering:
+    image: 'clustering'
+    container_name: 'clustering'
+    build: ./template_clustering/BL
+    ports:
+      - '5023:5023'
+    networks:
+      - service_bridge
+    restart: on-failure
+      
+  # folder_monitor
+  folder_monitor:
+    image: 'folder_monitor'
+    container_name: 'folder_monitor'
+    build: ./folder_monitoring_api/BL
+    volumes:
+      - file_input:/app/Portal
+      - file_output:/app/output
+      - angular_images:/app/angular
+      - ui_images:/app/training_ui
+    networks:
+      - service_bridge
+    restart: on-failure
+    depends_on: 
+      - common_db
+
+  # ace template training
+  training_api:
+    image: 'training_api'
+    container_name: 'training_api'
+    build: ./ace_template_training/BL
+    networks:
+      - service_bridge
+    restart: on-failure
+    volumes:
+      - files:/app/files
+    depends_on: 
+      - common_db
+
+  sap_api:
+    image: 'sap_api'
+    container_name: 'sap_api'
+    build:
+      context: ./sap_api/BL
+      dockerfile: sap_api.Dockerfile
+    networks:
+      - service_bridge
+    restart: on-failure
+    depends_on: 
+      - common_db
+
+  # json_builder
+  json_builder_api:
+    image: 'json_builder_api'
+    container_name: 'json_builder_api'
+    build: ./json_builder_api/BL
+    networks:
+      - service_bridge
+    volumes:
+      - json_output:/app/output
+    restart: on-failure
+    depends_on: 
+      - common_db
+
+  json_builder_db:
+    image: mysql:5.7
+    container_name: 'json_builder_db'
+    volumes:
+      - ./json_builder_api/DL:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - service_bridge
+    restart: on-failure
+    depends_on: 
+      - json_builder_api
+
+  json_builder_php:
+    image: 'phpmyadmin/phpmyadmin'
+    container_name: 'json_builder_php'
+    ports:
+      - '8088:80'
+    networks:
+      - service_bridge
+    links:
+      - json_builder_db:db
+
+  # table merger
+  table_merger_api:
+    image: 'table_merger_api'
+    container_name: 'table_merger_api'
+    build:
+      context: ./table_merger_api/BL
+      dockerfile: api.Dockerfile
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  # json reader
+  json_reader_api:
+    image: 'json_reader_api'
+    container_name: 'json_reader_api'
+    build: ./json_reader_api/BL
+    networks:
+      - service_bridge
+    volumes:
+      - json_reader_input:/app/rpaJSON
+      - json_reader_output:/app/rpaProcessed
+    restart: on-failure
+
+  # user auth
+  user_auth_api:
+    image: 'user_auth_api'
+    container_name: 'user_auth_api'
+    build: ./user_auth_api/BL
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  login_db:
+    image: mysql:5.7
+    container_name: 'login_db'
+    volumes:
+      - ./user_auth_api/DL:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - service_bridge
+    restart: on-failure
+
+  login_php:
+    image: 'phpmyadmin/phpmyadmin'
+    container_name: 'login_php'
+    ports:
+      - '8090:80'
+    networks:
+      - service_bridge
+    links:
+      - login_db:db
+
+  pdf_plumber_api:
+    image: 'pdf_plumber_api'
+    container_name: 'pdf_plumber_api'
+    build: ./pdf_plumber_api/BL
+    networks:
+      - service_bridge
+    restart: on-failure
+    volumes:
+      - invoice_files:/app/invoice_files
+
+  # training ui
+  training_ui:
+    image: 'httpd:2.4'
+    container_name: 'training_ui'
+    volumes:
+      - ui_files:/usr/local/apache2/htdocs/training/
+    ports:
+      - '5021:80'
+    networks:
+      - service_bridge
+    restart: on-failure
+
+volumes:
+  # folder_monitor
+  file_input:
+    driver: local
+    name: file_input
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'C//Users/appadmin/Desktop/Files/input/Portal'
+
+  file_output:
+    driver: local
+    name: file_output
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'C//Users/appadmin/Desktop/Files/Processed Invoices'
+
+  # json_builder
+  json_output:
+    driver: local
+    name: json_output
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'C//Users/appadmin/Desktop/Files/output/Portal/RPAInvoice'
+
+  # json reader
+  json_reader_input:
+    driver: local
+    name: json_reader_input
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'C//Users/appadmin/Desktop/Files/output/Portal/RPAStatus'
+
+  # json reader
+  json_reader_output:
+    driver: local
+    name: json_reader_output
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'C//Users/appadmin/Desktop/Files/output/Portal/RPAStatus/Processed'
+
+  # training ui
+  ui_files:
+    driver: local
+    name: ui_files
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'E//ACE/UAT/training_ui/BL/training'
+
+  ui_images:
+    driver: local
+    name: ui_images
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'E//ACE/UAT/training_ui/BL/training/images/invoices'
+
+  angular_images:
+    driver: local
+    name: angular_images
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'C//xampp/htdocs/ace/assets/pdf'
+  
+  files:
+    external: true
+    name: file_output
+
+  invoice_files:
+    external: true
+    name: file_output

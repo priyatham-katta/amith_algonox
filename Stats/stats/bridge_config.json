@@ -1,0 +1,150 @@
+{
+  "login": {
+    "host": "userauthapi",
+    "port": "80"
+  },
+  "get_stats_cards":{
+    "host" : "stats",
+    "port" : "80"
+  },
+  "flip":{
+    "host" : "stats",
+    "port" : "80"
+  },
+  "normal_card":{
+    "host" : "stats",
+    "port" : "80"
+  },
+  "dummy3":{
+    "host" : "stats",
+    "port" : "80"
+  },
+  "logout": {
+    "host": "userauthapi",
+    "port": "80"
+  },
+  "verify_session": {
+    "host": "userauthapi",
+    "port": "80"
+  },
+  "send_email": {
+    "host": "emailtrigger",
+    "port": "80"
+  },
+  "folder_monitor": {
+    "host": "folder_monitor",
+    "port": "5007"
+  },
+  "generate_report": {
+    "host": "folder_monitor",
+    "port": "5007"
+  },
+  "get_stats": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "get_fields": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "refresh_fields": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "update_queue": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "get_queue": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "get_queues": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "unlock_case": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "get_display_fields": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "save_changes": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "execute_button_function": {
+    "host": "buttonfunctions",
+    "port": "80"
+  },
+  "get_ocr_data": {
+    "host": "queueapi",
+    "port": "80"
+  },
+  "extract_for_template": {
+    "host": "extractionapi",
+    "port": "80"
+  },
+  "predict_field": {
+    "host": "extractionapi",
+    "port": "80"
+  },
+  "run_business_rule": {
+    "host": "businessrulesapi",
+    "port": "80"
+  },
+  "validate_rules": {
+    "host": "businessrulesapi",
+    "port": "80"
+  },
+  "run_business_rule_cg": {
+    "host": "businessrulesapi",
+    "port": "80"
+  },
+  "sap_inward": {
+    "host": "sapapi",
+    "port": "80"
+  },
+  "sap_ui": {
+    "host": "sapapi",
+    "port": "80"
+  },
+  "sap_portal_inward": {
+    "host": "sapapi",
+    "port": "80"
+  },
+  "generate_json": {
+    "host": "jsonbuilderapi",
+    "port": "80"
+  },
+  "testFields": {
+    "host": "trainingapi",
+    "port": "80"
+  },
+  "train": {
+    "host": "trainingapi",
+    "port": "80"
+  },
+  "retrain": {
+    "host": "trainingapi",
+    "port": "80"
+  },
+  "force_template": {
+    "host": "trainingapi",
+    "port": "80"
+  },
+  "predict_with_ui_data": {
+    "host": "tableapi",
+    "port": "80"
+  },
+  "merge_table": {
+    "host": "tablemergerapi",
+    "port": "80"
+  },
+  "cluster": {
+    "host": "clustering",
+    "port": "80"
+  }
+}
